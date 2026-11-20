@@ -1,0 +1,7 @@
+.venv/
+.venv-ci/
+reports/
+__pycache__/
+.pytest_cache/
+test-results/
+playwright-report/
