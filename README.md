@@ -52,7 +52,7 @@ container; the test agent needs access to Docker.
 ### Jenkins setup
 
 1. Put this project in a Git repository accessible to Jenkins.
-2. Install the Pipeline, Docker Pipeline, Git, and JUnit plugins in Jenkins.
+2. Install the plugins listed in `jenkins/plugins.txt` (see below).
 3. Provide a Linux Jenkins agent labelled `docker`, with Git, the Docker CLI,
    and permission to use its Docker daemon. The daemon must be able to mount the
    agent workspace. The container needs outbound access to PyPI and the target site;
@@ -88,3 +88,48 @@ Docker is optional for Playwright itself. If your Jenkins agents cannot run Dock
 use a Linux agent with Python, install the requirements, then run
 `python -m playwright install --with-deps chromium` before pytest. Installing
 system dependencies requires suitable administrator permissions on that agent.
+
+### Installing Jenkins plugins from a file
+
+`jenkins/plugins.txt` lists plugin IDs, one per line:
+
+| Plugin ID | Purpose |
+| --- | --- |
+| `workflow-aggregator` | Pipeline support, including Declarative Pipeline |
+| `docker-workflow` | The `agent { docker { ... } }` syntax |
+| `git` | Check out the repository |
+| `junit` | Publish pytest's JUnit XML report |
+| `timestamper` | The pipeline's `timestamps()` option |
+
+The Jenkins Plugin Installation Manager installs their dependencies automatically.
+Versions are currently unpinned; use `plugin-id:version` entries when you want
+to maintain a tested set of plugin versions for a specific Jenkins release.
+
+For a Jenkins controller built from the official Docker image, a Dockerfile is
+provided. From the project directory, build it with:
+
+```bash
+docker build -t the-internet-jenkins ./jenkins
+```
+
+Use this image instead of `jenkins/jenkins` when provisioning your controller.
+It installs the plugins during the image build; it does not configure jobs or
+provide the Docker-capable test agent described above. Existing Jenkins volumes
+may retain installed plugin versions, so check the plugin state after an image
+upgrade.
+
+If `jenkins-plugin-cli` is available in your controller environment, you can also
+use the list directly as part of controller provisioning:
+
+```bash
+jenkins-plugin-cli --plugin-file jenkins/plugins.txt
+```
+
+This tool is bundled with the official Jenkins Docker image; it is not necessarily
+installed on a host-based Jenkins controller. Its default destination in that image
+is the reference plugins directory used at startup. Running it inside an already
+running container does not immediately load plugins into the active controller.
+
+The plugin list must be applied before Jenkins compiles `Jenkinsfile`. Merely
+committing it to the repository does not install plugins, and the pipeline cannot
+install the plugin needed to parse its own `docker` agent declaration.
