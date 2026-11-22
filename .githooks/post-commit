@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# post-commit runs after Git has saved the commit; build failures cannot undo it.
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+
+if ! command -v docker >/dev/null 2>&1; then
+    printf '%s\n' 'Commit saved, but the image was not built: Docker is not on PATH.' >&2
+    exit 1
+fi
+
+printf '%s\n' 'Building the-internet-playwright:latest after commit...'
+if ! docker build -t the-internet-playwright:latest "$repo_root"; then
+    printf '%s\n' 'Commit saved, but the Docker image build failed. Check the output above.' >&2
+    exit 1
+fi

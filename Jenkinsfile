@@ -15,6 +15,11 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
     }
 
+    triggers {
+        // This Jenkins server is on a private LAN, so check GitHub for changes.
+        pollSCM('* * * * *')
+    }
+
     environment {
         CI = 'true'
         BASE_URL = 'https://the-internet.herokuapp.com'
