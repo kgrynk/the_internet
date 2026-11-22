@@ -29,9 +29,9 @@ python -m pytest tests/test_authentication.py
 
 ### Parallel execution
 
-Enabled by default, number of workers is based on CPU cores. In Jenkins,
-choose `WORKERS` under **Build with Parameters** (2 by default; 0 disables parallel
-execution). The pipeline still publishes one combined JUnit report and archives
+Enabled by default, number of workers is based on CPU cores for local runs. Jenkins
+automatically uses four workers, configured by `WORKERS` in the Jenkinsfile's
+`environment` block. The pipeline still publishes one combined JUnit report and archives
 failure artifacts. `disableConcurrentBuilds()` prevents separate builds from
 overlapping; it does not prevent workers inside one build from running in parallel.
 
@@ -70,8 +70,10 @@ container; the test agent needs access to Docker.
    and Microsoft's container registry; test runs only need access to the target site.
 4. Create a **Pipeline** job, choose **Pipeline script from SCM**, select Git,
    configure your repository and credentials, and use `Jenkinsfile` as the script path.
-5. Run **Build Now**. Later runs can use **Build with Parameters** to change
-   `BASE_URL` and `WORKERS`. Configure an SCM webhook if you want builds on pushes.
+5. Run **Build Now**. Jenkins automatically uses four workers and
+   `https://the-internet.herokuapp.com`, configured by `WORKERS` and `BASE_URL`
+   in the Jenkinsfile's `environment` block. No build parameters are required.
+   Configure an SCM webhook if you want builds on pushes.
 
 The test image includes Python dependencies in `/opt/venv`. The pipeline uses
 that environment directly, executes the suite without installing packages, and

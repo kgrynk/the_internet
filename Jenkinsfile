@@ -15,21 +15,10 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
     }
 
-    parameters {
-        choice(
-            name: 'WORKERS',
-            choices: ['2', '4', '0'],
-            description: 'Parallel pytest-xdist workers; 0 runs sequentially'
-        )
-        string(
-            name: 'BASE_URL',
-            defaultValue: 'https://the-internet.herokuapp.com',
-            description: 'Deployment to test'
-        )
-    }
-
     environment {
         CI = 'true'
+        BASE_URL = 'https://the-internet.herokuapp.com'
+        WORKERS = '4'
     }
 
     stages {
