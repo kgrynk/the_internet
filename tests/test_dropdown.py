@@ -1,6 +1,8 @@
 import pytest
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.covers("/dropdown")
+
 
 @pytest.mark.parametrize("value,label", [("1", "Option 1"), ("2", "Option 2")])
 def test_select_dropdown_option(page: Page, value: str, label: str):

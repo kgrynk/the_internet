@@ -1,6 +1,8 @@
 import pytest
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.covers("/javascript_alerts")
+
 
 def test_accept_alert(page: Page):
     page.goto("/javascript_alerts")

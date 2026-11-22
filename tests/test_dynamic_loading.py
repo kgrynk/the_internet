@@ -1,10 +1,13 @@
 import pytest
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.covers("/dynamic_loading")
+
 
 @pytest.mark.parametrize("example", [1, 2], ids=["hidden-element", "new-element"])
 def test_dynamically_loaded_text(page: Page, example: int):
-    page.goto(f"/dynamic_loading/{example}")
+    page.goto("/dynamic_loading")
+    page.locator(f'a[href="/dynamic_loading/{example}"]').click()
     result = page.locator("#finish")
     expect(result).not_to_be_visible()
 

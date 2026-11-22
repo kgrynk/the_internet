@@ -1,8 +1,8 @@
 # The Internet — Python Playwright tests
 
-A small end-to-end suite covering Form Authentication, Checkboxes, Dropdown,
-Dynamic Loading, and JavaScript Alerts. The 15 test cases include invalid login
-credentials, both dynamic loading examples, and accepting or dismissing dialogs.
+A Python Playwright end-to-end suite with 110 test cases covering all 76 demos
+listed on the site's homepage, plus linked examples such as nested frames,
+the iframe editor, shifting content, and HTTP status-code pages.
 
 ## Setup
 
@@ -26,6 +26,48 @@ Specific test:
 ```bash
 python -m pytest tests/test_authentication.py
 ```
+
+## Coverage
+
+| Test module | Demos and behaviors |
+| --- | --- |
+| `test_authentication.py` | Login, invalid credentials, logout |
+| `test_checkboxes.py`, `test_dropdown.py`, `test_javascript_alerts.py` | Checkboxes, select options, alert/confirm/prompt handling |
+| `test_dynamic_loading.py` | Both linked dynamic loading examples |
+| `test_page_content.py` | Homepage filtering and coverage audit, A/B variants, accessibility fixes, broken images, challenging/deep DOM, disappearing elements, dynamic content, notifications, typos, visual variants |
+| `test_interactions.py` | Add/remove elements, context menu, drag and drop, dynamic controls, entry/exit modals, floating menu, slider, hovers, number inputs, key presses, canvas, native dialogs, pointer gestures, responsive navigation, SVG, stale elements, toasts |
+| `test_forms.py` | Autocomplete, Basic/Digest authentication, cookie consent, custom dropdown, date pickers, password recovery form, form validation, large form, multiple select, radio buttons, read-only controls, two-factor login |
+| `test_frames_and_navigation.py` | Frames, TinyMCE, advanced iframes, simple/advanced shadow DOM, new windows, redirects, SPA history, subdirectories, all three shifting examples, sortable tables |
+| `test_files.py` | File upload/download, authenticated download, generated downloads, jQuery UI nested menu |
+| `test_network_and_browser.py` | Permissions/clipboard, geolocation, locale/timezone, SSE updates, WebSocket echo, two-user chat, JavaScript errors, network/console/CSP events, API failures/retries, slow resources, status codes, infinite scrolling, virtualized list |
+
+Tests declare their homepage route with `@pytest.mark.covers("/path")`. The
+homepage inventory test compares the live links with those declarations and fails
+if a new demo has no declared test. This measures page coverage, not every possible
+action or input on each page.
+
+Random demos accept their documented variants. Broken images, JavaScript errors,
+and HTTP error responses are asserted as intentional demo behavior. Visual
+variants are checked through DOM/style changes rather than platform-specific
+reference screenshots. Closed shadow roots are checked for encapsulation; their
+internals are not accessed through Playwright locators. Exit intent uses a
+synthetic document mouseleave because headless browsers have no browser chrome.
+
+Password recovery verifies the form without submitting it or sending email.
+Camera hardware is not required. Upload tests use a unique, harmless text file;
+the public demo may retain uploaded fixtures. Chat tests use a unique room per
+run to avoid interfering with other visitors or parallel workers. Geolocation is
+emulated, downloads use pytest temporary directories, and contexts isolate cookies
+and authentication state.
+
+Run the expanded suite with Jenkins's four-worker setting locally:
+
+```bash
+python -m pytest -n 4 --junitxml=reports/junit.xml
+```
+
+No test-image rebuild is needed for these additional test files; the dependencies
+are unchanged and Jenkins mounts the current checkout into the prepared image.
 
 ### Parallel execution
 
