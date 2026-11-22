@@ -1,0 +1,5 @@
+# Only dependency metadata is needed to build the test environment.
+**
+!Dockerfile
+!.dockerignore
+!requirements.txt

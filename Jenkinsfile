@@ -2,8 +2,8 @@ pipeline {
     agent {
         docker {
             label 'docker'
-            // Keep this version aligned with playwright in requirements.txt.
-            image 'mcr.microsoft.com/playwright/python:v1.64.1-noble'
+            // Build the root Dockerfile on this agent's Docker daemon first.
+            image 'the-internet-playwright:latest'
             args '--init --ipc=host'
         }
     }
@@ -25,25 +25,15 @@ pipeline {
 
     environment {
         CI = 'true'
-        PIP_DISABLE_PIP_VERSION_CHECK = '1'
-        PYTHONPATH = '/tmp/the-internet-python'
     }
 
     stages {
-        stage('Install dependencies') {
-            steps {
-                sh '''
-                    python -m pip install --no-cache-dir --target "$PYTHONPATH" -r requirements.txt
-                '''
-            }
-        }
-
         stage('Test') {
             steps {
                 sh '''
                     mkdir -p reports
                     rm -f reports/junit.xml
-                    python -m pytest --junitxml=reports/junit.xml
+                    /opt/venv/bin/python -m pytest --junitxml=reports/junit.xml
                 '''
             }
             post {

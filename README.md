@@ -45,8 +45,9 @@ python -m playwright show-trace test-results/<test-directory>/trace.zip
 
 ## Jenkins
 
-The `Jenkinsfile` runs pytest and headless Chromium together inside the official
-Playwright Python Docker image. Jenkins itself can run on a host or in a
+The `Jenkinsfile` runs pytest and headless Chromium together inside the custom
+`the-internet-playwright:latest` test image, based on the official Playwright Python
+image. Jenkins itself can run on a host or in a
 container; the test agent needs access to Docker.
 
 ### Jenkins setup
@@ -55,41 +56,61 @@ container; the test agent needs access to Docker.
 2. Install the plugins listed in `jenkins/plugins.txt` (see below).
 3. Provide a Linux Jenkins agent labelled `docker`, with Git, the Docker CLI,
    and permission to use its Docker daemon. The daemon must be able to mount the
-   agent workspace. The container needs outbound access to PyPI and the target site;
-   the agent also needs access to Microsoft's container registry.
+   agent workspace. Build the test image on this agent's Docker daemon using the
+   command below. Image builds need access to Ubuntu package repositories, PyPI,
+   and Microsoft's container registry; test runs only need access to the target site.
 4. Create a **Pipeline** job, choose **Pipeline script from SCM**, select Git,
    configure your repository and credentials, and use `Jenkinsfile` as the script path.
 5. Run **Build Now**. Later runs can use **Build with Parameters** to change
    `BASE_URL`. Configure an SCM webhook if you want builds on pushes.
 
-The pipeline installs Python dependencies in `/tmp/the-internet-python` inside
-the disposable container, exposes them through `PYTHONPATH`, executes the suite, and
+The test image includes Python dependencies in `/opt/venv`. The pipeline uses
+that environment directly, executes the suite without installing packages, and
 publishes JUnit results in Jenkins. Failed tests fail the build. Screenshots and
 traces are archived as downloadable build artifacts; passed tests discard them.
 Runs have a 15-minute timeout and do not overlap for the same job.
 
-The Playwright Python version in `requirements.txt` must match the Docker image
-tag in `Jenkinsfile`. Update both together. The image already contains browsers
+The Playwright Python version in `requirements.txt` must match the base image
+tag in the root `Dockerfile`. Update both together. The base image contains browsers
 and their system libraries, so the pipeline does not download browsers again.
 After changing Playwright versions locally, rerun `python -m playwright install chromium`.
 
-To reproduce the Jenkins test command locally in Docker (from project directory):
+### Building and running the test image
+
+From the project directory, build the image before running Jenkins:
+
+```bash
+docker build -t the-internet-playwright:latest .
+```
+
+The Dockerfile installs `python3-venv`, creates `/opt/venv`, and installs the
+requirements during the image build. Docker reuses these layers while their inputs
+remain unchanged and the build cache is available. Rebuild after changing
+`requirements.txt` or the Dockerfile. To deliberately refresh packages allowed by
+the version ranges, rebuild with `--no-cache`. Test source changes do not require
+an image rebuild because Jenkins mounts its checked-out workspace at runtime.
+The root `.dockerignore` keeps local environments and test results out of the build
+context.
+
+The image must exist on the Docker daemon used by the selected Jenkins agent.
+If you have several agents, publish it to a container registry and update the
+`image` reference in `Jenkinsfile` to that registry image (prefer a versioned tag).
+
+To reproduce the Jenkins test command locally:
 
 ```bash
 docker run --rm --init --ipc=host \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
-  -e PYTHONPATH=/tmp/the-internet-python \
   -e BASE_URL=https://the-internet.herokuapp.com \
   -v "$PWD:/work" -w /work \
-  mcr.microsoft.com/playwright/python:v1.64.1-noble \
-  sh -c 'python -m pip install --no-cache-dir --target "$PYTHONPATH" -r requirements.txt && python -m pytest --junitxml=reports/junit.xml'
+  the-internet-playwright:latest \
+  /opt/venv/bin/python -m pytest --junitxml=reports/junit.xml
 ```
 
-The container command does not create a virtual environment: this image may lack
-`ensurepip`/`python3-venv`. Installing into a temporary directory also works with
-the non-root user above, without writing to system Python directories. The mounted
-project retains reports and failure artifacts after the container exits.
+The container uses the preinstalled environment without modifying it, so the
+command works with the non-root user above. The mounted project retains reports
+and failure artifacts after the container exits.
 
 Docker is optional for Playwright itself. If your Jenkins agents cannot run Docker,
 use a Linux agent with Python, install the requirements, then run
@@ -112,8 +133,9 @@ The Jenkins Plugin Installation Manager installs their dependencies automaticall
 Versions are currently unpinned; use `plugin-id:version` entries when you want
 to maintain a tested set of plugin versions for a specific Jenkins release.
 
-For a Jenkins controller built from the official Docker image, a Dockerfile is
-provided. From the project directory, build it with:
+The separate `jenkins/Dockerfile` builds the Jenkins controller with plugins; the
+root `Dockerfile` builds the Playwright test environment. To build the controller
+image from the project directory:
 
 ```bash
 docker build -t the-internet-jenkins ./jenkins
