@@ -16,6 +16,11 @@ pipeline {
     }
 
     parameters {
+        choice(
+            name: 'WORKERS',
+            choices: ['2', '4', '0'],
+            description: 'Parallel pytest-xdist workers; 0 runs sequentially'
+        )
         string(
             name: 'BASE_URL',
             defaultValue: 'https://the-internet.herokuapp.com',
@@ -33,7 +38,7 @@ pipeline {
                 sh '''
                     mkdir -p reports
                     rm -f reports/junit.xml
-                    /opt/venv/bin/python -m pytest --junitxml=reports/junit.xml
+                    /opt/venv/bin/python -m pytest -n "$WORKERS" --junitxml=reports/junit.xml
                 '''
             }
             post {
