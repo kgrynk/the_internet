@@ -26,14 +26,14 @@ pipeline {
     environment {
         CI = 'true'
         PIP_DISABLE_PIP_VERSION_CHECK = '1'
+        PYTHONPATH = '/tmp/the-internet-python'
     }
 
     stages {
         stage('Install dependencies') {
             steps {
                 sh '''
-                    python -m venv --clear .venv-ci
-                    .venv-ci/bin/python -m pip install --no-cache-dir -r requirements.txt
+                    python -m pip install --no-cache-dir --target "$PYTHONPATH" -r requirements.txt
                 '''
             }
         }
@@ -43,7 +43,7 @@ pipeline {
                 sh '''
                     mkdir -p reports
                     rm -f reports/junit.xml
-                    .venv-ci/bin/python -m pytest --junitxml=reports/junit.xml
+                    python -m pytest --junitxml=reports/junit.xml
                 '''
             }
             post {

@@ -62,7 +62,8 @@ container; the test agent needs access to Docker.
 5. Run **Build Now**. Later runs can use **Build with Parameters** to change
    `BASE_URL`. Configure an SCM webhook if you want builds on pushes.
 
-The pipeline installs Python dependencies in `.venv-ci`, executes the suite, and
+The pipeline installs Python dependencies in `/tmp/the-internet-python` inside
+the disposable container, exposes them through `PYTHONPATH`, executes the suite, and
 publishes JUnit results in Jenkins. Failed tests fail the build. Screenshots and
 traces are archived as downloadable build artifacts; passed tests discard them.
 Runs have a 15-minute timeout and do not overlap for the same job.
@@ -78,11 +79,17 @@ To reproduce the Jenkins test command locally in Docker (from project directory)
 docker run --rm --init --ipc=host \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
+  -e PYTHONPATH=/tmp/the-internet-python \
   -e BASE_URL=https://the-internet.herokuapp.com \
   -v "$PWD:/work" -w /work \
   mcr.microsoft.com/playwright/python:v1.64.1-noble \
-  sh -c 'python -m venv --clear .venv-ci && .venv-ci/bin/python -m pip install --no-cache-dir -r requirements.txt && .venv-ci/bin/python -m pytest --junitxml=reports/junit.xml'
+  sh -c 'python -m pip install --no-cache-dir --target "$PYTHONPATH" -r requirements.txt && python -m pytest --junitxml=reports/junit.xml'
 ```
+
+The container command does not create a virtual environment: this image may lack
+`ensurepip`/`python3-venv`. Installing into a temporary directory also works with
+the non-root user above, without writing to system Python directories. The mounted
+project retains reports and failure artifacts after the container exits.
 
 Docker is optional for Playwright itself. If your Jenkins agents cannot run Docker,
 use a Linux agent with Python, install the requirements, then run
